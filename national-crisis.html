@@ -1,0 +1,661 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
+<title>国家危機（仮）</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Zen+Kaku+Gothic+New:wght@500;700;900&family=Noto+Sans+JP:wght@400;500;700&family=Roboto+Mono:wght@500;700&display=swap" rel="stylesheet">
+<style>
+:root{
+  --bg:#0c0f13;
+  --panel:#151a20;
+  --panel-alt:#1c232b;
+  --line:#2b333d;
+  --ink:#e7ebee;
+  --muted:#8b96a3;
+  --alert:#e2483d;
+  --alert-bright:#ff6f61;
+  --amber:#e0a339;
+  --ok:#4caf7d;
+  --oil:#6b5236;
+  --water:#3d7ea6;
+  --iron:#7b8794;
+  --food:#7a9a4a;
+  --citizen:#4d8fd1;
+  --traitor:#e2483d;
+  --radius:10px;
+  --shadow:0 10px 26px rgba(0,0,0,.5);
+}
+*{box-sizing:border-box;}
+html,body{margin:0;padding:0;}
+body{
+  background:
+    radial-gradient(ellipse at 50% -10%, rgba(226,72,61,.08), transparent 55%),
+    var(--bg);
+  color:var(--ink);
+  font-family:"Noto Sans JP","Hiragino Sans",sans-serif;
+  min-height:100vh;
+  -webkit-tap-highlight-color:transparent;
+}
+h1,h2,h3{font-family:"Zen Kaku Gothic New",sans-serif; margin:0 0 .3em 0; font-weight:900; letter-spacing:.03em;}
+.mono{font-family:"Roboto Mono",monospace;}
+#app{max-width:900px;margin:0 auto;padding:16px 14px 60px;}
+.title-row{text-align:center;padding-top:6px;}
+.title-row h1{font-size:1.65rem;color:var(--alert-bright);text-shadow:0 2px 12px rgba(226,72,61,.35);}
+.title-row .sub{color:var(--muted);font-size:.82rem;letter-spacing:.06em;}
+.hazard-strip{
+  height:8px;margin:10px 0 18px;border-radius:4px;
+  background:repeating-linear-gradient(45deg, var(--amber) 0 14px, #1c232b 14px 28px);
+  opacity:.55;
+}
+.card{background:var(--panel);border:1px solid var(--line);border-radius:var(--radius);padding:18px;margin-bottom:14px;box-shadow:var(--shadow);}
+.btn{display:inline-block;background:var(--panel-alt);color:var(--ink);border:1px solid var(--line);border-radius:8px;padding:11px 18px;font-size:.95rem;font-family:inherit;cursor:pointer;transition:transform .08s ease,border-color .15s ease;margin:4px 4px 4px 0;}
+.btn:hover{border-color:var(--amber);}
+.btn:active{transform:scale(.97);}
+.btn.primary{background:linear-gradient(180deg,var(--alert-bright),var(--alert));color:#1a0a08;border-color:var(--alert);font-weight:700;}
+.btn.ok{background:var(--ok);border-color:var(--ok);color:#08150e;font-weight:700;}
+.btn.block{display:block;width:100%;text-align:center;margin:8px 0;}
+.btn:disabled{opacity:.35;cursor:not-allowed;}
+.row{display:flex;gap:8px;flex-wrap:wrap;align-items:center;}
+label{color:var(--muted);font-size:.8rem;display:block;margin-bottom:4px;}
+input[type=text]{background:var(--panel-alt);border:1px solid var(--line);color:var(--ink);border-radius:8px;padding:10px 12px;font-size:1rem;font-family:inherit;width:100%;}
+.muted{color:var(--muted);}
+.small{font-size:.8rem;}
+.center{text-align:center;}
+.hidden{display:none !important;}
+
+/* status bar */
+.status{
+  display:grid;grid-template-columns:repeat(4,1fr);gap:8px;margin-bottom:12px;
+}
+.status .box{background:var(--panel-alt);border:1px solid var(--line);border-radius:8px;padding:8px 10px;text-align:center;}
+.status .box .lbl{font-size:.68rem;color:var(--muted);letter-spacing:.05em;}
+.status .box .val{font-family:"Roboto Mono",monospace;font-size:1.15rem;font-weight:700;color:var(--ink);}
+.gauge-track{height:14px;border-radius:7px;background:#0e1116;border:1px solid var(--line);overflow:hidden;margin-top:4px;}
+.gauge-fill{height:100%;background:linear-gradient(90deg,var(--amber),var(--alert));transition:width .3s ease;}
+
+/* resource tiles */
+.res-tile{
+  width:60px;height:78px;border-radius:8px;border:1px solid rgba(0,0,0,.3);
+  display:flex;flex-direction:column;align-items:center;justify-content:flex-end;
+  padding:5px 3px 6px;font-size:.66rem;font-weight:700;color:#fff;text-align:center;
+  cursor:pointer;user-select:none;box-shadow:0 3px 6px rgba(0,0,0,.35);
+  transition:transform .1s ease,box-shadow .1s ease; flex-shrink:0; position:relative;
+}
+.res-tile.small{width:38px;height:50px;font-size:.55rem;}
+.res-tile.selected{transform:translateY(-8px);box-shadow:0 8px 14px rgba(224,163,57,.6);border-color:var(--amber);}
+.res-tile.traded::after{content:'⇄';position:absolute;top:3px;right:4px;font-size:.6rem;opacity:.8;}
+.res-wrap{display:flex;flex-wrap:wrap;gap:8px;padding:6px 0;}
+.owner-group{margin-bottom:10px;}
+.owner-group .oname{font-size:.78rem;color:var(--muted);margin-bottom:4px;}
+
+.crisis-panel{
+  border:2px solid var(--alert);border-radius:10px;padding:16px;text-align:center;
+  background:radial-gradient(ellipse at 50% 0%, rgba(226,72,61,.12), transparent 70%);
+  margin-bottom:14px;
+}
+.crisis-panel .cname{font-size:1.5rem;color:var(--alert-bright);font-family:"Zen Kaku Gothic New";font-weight:900;}
+.crisis-panel .creq{margin-top:6px;color:var(--muted);font-size:.9rem;}
+
+.role-card{
+  text-align:center;padding:40px 20px;border-radius:12px;margin-bottom:14px;
+}
+.role-card.citizen{background:radial-gradient(circle, rgba(77,143,209,.15), transparent 70%);border:2px solid var(--citizen);}
+.role-card.traitor{background:radial-gradient(circle, rgba(226,72,61,.18), transparent 70%);border:2px solid var(--traitor);}
+.role-card .rlabel{font-size:2rem;font-family:"Zen Kaku Gothic New";font-weight:900;}
+.role-card.citizen .rlabel{color:var(--citizen);}
+.role-card.traitor .rlabel{color:var(--traitor);}
+
+.gate{text-align:center;padding:60px 20px;}
+.gate h2{color:var(--amber);}
+.log-box{background:#0a0c10;border:1px solid var(--line);border-radius:8px;padding:8px 12px;font-size:.76rem;color:var(--muted);max-height:130px;overflow-y:auto;margin-top:10px;}
+.log-box div{padding:1px 0;}
+.section-label{font-size:.72rem;color:var(--muted);letter-spacing:.08em;margin:14px 0 6px;border-bottom:1px solid var(--line);padding-bottom:4px;}
+.help-toggle{cursor:pointer;color:var(--amber);text-decoration:underline;font-size:.85rem;}
+#rules-body{margin-top:10px;font-size:.85rem;line-height:1.7;color:var(--muted);}
+#rules-body h4{color:var(--ink);margin:14px 0 4px;font-size:.9rem;}
+#rules-body table{width:100%;border-collapse:collapse;font-size:.8rem;margin:6px 0;}
+#rules-body td,#rules-body th{border:1px solid var(--line);padding:4px 6px;text-align:left;}
+.pick-counter{font-family:"Roboto Mono",monospace;font-size:1rem;color:var(--amber);}
+.result-banner{font-size:2rem;font-family:"Zen Kaku Gothic New";font-weight:900;text-align:center;margin:10px 0;}
+.result-banner.citizen{color:var(--citizen);}
+.result-banner.traitor{color:var(--traitor);}
+</style>
+</head>
+<body>
+<div id="app">
+  <div class="title-row">
+    <h1>国家危機（仮）</h1>
+    <div class="sub">半協力・正体隠匿・交渉ゲーム</div>
+  </div>
+  <div class="hazard-strip"></div>
+  <div id="root"></div>
+</div>
+
+<script>
+/* =====================================================================
+   1. データ定義
+   ===================================================================== */
+const RESOURCE_TYPES = ['oil','water','iron','food'];
+const RESOURCE_LABEL = {oil:'石油', water:'水', iron:'鉄', food:'食料'};
+const RESOURCE_COLOR = {oil:'var(--oil)', water:'var(--water)', iron:'var(--iron)', food:'var(--food)'};
+
+const CRISIS_DEFS = [
+  {type:'war',       name:'戦争',        reqType:'oil',   reqAmount:2, count:5},
+  {type:'drought',   name:'干ばつ',      reqType:'water', reqAmount:2, count:4},
+  {type:'famine',    name:'飢饉',        reqType:'food',  reqAmount:2, count:4},
+  {type:'infra',     name:'インフラ崩壊', reqType:'iron',  reqAmount:2, count:3},
+  {type:'emergency', name:'国家非常事態', reqType:'any',   reqAmount:4, count:2},
+];
+
+let _idc = 0;
+function nid(prefix){ return prefix+'_'+(_idc++); }
+function shuffle(arr){
+  const a=arr.slice();
+  for(let i=a.length-1;i>0;i--){ const j=Math.floor(Math.random()*(i+1)); [a[i],a[j]]=[a[j],a[i]]; }
+  return a;
+}
+function buildCrisisDeck(){
+  const deck=[];
+  CRISIS_DEFS.forEach(def=>{ for(let i=0;i<def.count;i++) deck.push({id:nid('crisis'), type:def.type, name:def.name, reqType:def.reqType, reqAmount:def.reqAmount}); });
+  return shuffle(deck);
+}
+function buildResourcePool(){
+  const pool=[];
+  RESOURCE_TYPES.forEach(t=>{ for(let i=0;i<10;i++) pool.push({id:nid('res'), type:t}); });
+  return shuffle(pool);
+}
+function clone(s){ return JSON.parse(JSON.stringify(s)); }
+
+/* =====================================================================
+   2. ゲームエンジン（純関数）
+   ===================================================================== */
+const Game2 = {};
+function pushLog(state,msg){ state.log.push(msg); if(state.log.length>300) state.log.shift(); }
+
+Game2.newGame = function(names){
+  const roles = shuffle(['citizen','citizen','citizen','traitor']);
+  const pool = buildResourcePool();
+  const players = names.map((name,i)=>({ id:i, name, role:roles[i], hand: pool.splice(0,5) }));
+  const crisisDeck = buildCrisisDeck();
+  const state = {
+    players, turnPlayer:0, crisisDeck, currentCrisis:null, gauge:0,
+    discard:[], refillDeck:[], field:[], submissions:{}, zeroSubmitters:[],
+    round:1, phase:'crisis_reveal', result:null, log:['ゲーム開始'],
+  };
+  state.currentCrisis = state.crisisDeck.shift();
+  pushLog(state, `第${state.round}ラウンド: 「${state.currentCrisis.name}」が発生`);
+  return state;
+};
+Game2.advanceToDiscussion = function(stateIn){
+  const state=clone(stateIn); if(state.phase!=='crisis_reveal') return state;
+  state.phase='discussion'; return state;
+};
+Game2.advanceToSubmission = function(stateIn){
+  const state=clone(stateIn); if(state.phase!=='discussion') return state;
+  state.phase='submission'; state.submissions={}; return state;
+};
+Game2.submitCards = function(stateIn, playerId, cardIds){
+  const state=clone(stateIn); if(state.phase!=='submission') return state;
+  if(state.submissions[playerId]) return state;
+  const player = state.players[playerId];
+  for(const cid of cardIds){ if(!player.hand.find(c=>c.id===cid)) return state; }
+  const removed=[];
+  player.hand = player.hand.filter(c=>{ if(cardIds.includes(c.id)){ removed.push(c); return false; } return true; });
+  state.submissions[playerId]=removed;
+  return state;
+};
+Game2.allSubmitted = function(state){ return state.players.every(p=>state.submissions[p.id]); };
+Game2.revealSubmissions = function(stateIn){
+  const state=clone(stateIn); if(state.phase!=='submission') return state;
+  if(!Game2.allSubmitted(state)) return state;
+  const field=[], zero=[];
+  state.players.forEach(p=>{
+    const cards = state.submissions[p.id]||[];
+    if(cards.length===0) zero.push(p.id);
+    cards.forEach(c=> field.push({id:c.id, type:c.type, ownerId:p.id, traded:false}));
+  });
+  state.field=field; state.zeroSubmitters=zero; state.submissions={}; state.phase='reveal';
+  pushLog(state, `提出完了（${field.length}枚が公開）`);
+  return state;
+};
+Game2.advanceToTrade = function(stateIn){
+  const state=clone(stateIn); if(state.phase!=='reveal') return state;
+  state.phase='trade'; return state;
+};
+Game2.doTrade = function(stateIn, cardId1, cardId2, newType){
+  const state=clone(stateIn); if(state.phase!=='trade') return state;
+  if(cardId1===cardId2) return state;
+  const c1=state.field.find(c=>c.id===cardId1), c2=state.field.find(c=>c.id===cardId2);
+  if(!c1||!c2) return state;
+  if(!RESOURCE_TYPES.includes(newType)) return state;
+  state.field = state.field.filter(c=>c.id!==cardId1 && c.id!==cardId2);
+  state.field.push({id:nid('res'), type:newType, ownerId:null, traded:true});
+  pushLog(state, `貿易: ${RESOURCE_LABEL[c1.type]}+${RESOURCE_LABEL[c2.type]} → ${RESOURCE_LABEL[newType]}（2枚消費・1枚生成）`);
+  return state;
+};
+Game2.advanceToJudgment = function(stateIn){
+  const state=clone(stateIn); if(state.phase!=='trade') return state;
+  state.phase='judgment'; return state;
+};
+Game2.canSucceed = function(state){
+  const req=state.currentCrisis;
+  if(req.reqType==='any') return state.field.length>=req.reqAmount;
+  return state.field.filter(c=>c.type===req.reqType).length>=req.reqAmount;
+};
+Game2.resolveSuccess = function(stateIn, chosenIds){
+  const state=clone(stateIn); if(state.phase!=='judgment') return state;
+  const req=state.currentCrisis;
+  if(chosenIds.length!==req.reqAmount) return state;
+  const chosenCards = chosenIds.map(id=>state.field.find(c=>c.id===id));
+  if(chosenCards.some(c=>!c)) return state;
+  if(req.reqType!=='any' && chosenCards.some(c=>c.type!==req.reqType)) return state;
+  const chosenSet = new Set(chosenIds);
+  chosenCards.forEach(c=> state.discard.push(c.type));
+  const remaining = state.field.filter(c=>!chosenSet.has(c.id));
+  remaining.forEach(c=> state.refillDeck.push(c.type));
+  state.refillDeck = shuffle(state.refillDeck);
+  state.field=[];
+  pushLog(state, `「${req.name}」解決に成功！`);
+  return finishRound(state);
+};
+Game2.resolveFailure = function(stateIn){
+  const state=clone(stateIn); if(state.phase!=='judgment') return state;
+  state.gauge += 1;
+  const traded = state.field.filter(c=>c.traded);
+  const original = state.field.filter(c=>!c.traded);
+  traded.forEach(c=> state.discard.push(c.type));
+  original.forEach(c=> state.refillDeck.push(c.type));
+  state.refillDeck = shuffle(state.refillDeck);
+  state.field=[];
+  pushLog(state, `「${state.currentCrisis.name}」解決に失敗… 危機ゲージ+1（現在${state.gauge}）`);
+  return finishRound(state);
+};
+function finishRound(state){
+  const order=[state.turnPlayer,(state.turnPlayer+1)%4,(state.turnPlayer+2)%4,(state.turnPlayer+3)%4];
+  const target = order.find(pid=>state.zeroSubmitters.includes(pid));
+  if(target!==undefined && state.refillDeck.length>0){
+    const type = state.refillDeck.pop();
+    state.players[target].hand.push({id:nid('res'), type});
+    pushLog(state, `${state.players[target].name} が補充した（内容は非公開）`);
+  } else {
+    pushLog(state, '補充なし');
+  }
+  state.turnPlayer = (state.turnPlayer+1)%4;
+  if(state.gauge>=5){
+    state.phase='gameover'; state.result={winner:'traitor', reason:'gauge_max'};
+    pushLog(state, '危機ゲージが5に到達。裏切り者の勝利。');
+    return state;
+  }
+  if(state.crisisDeck.length===0){
+    state.phase='gameover'; state.result={winner:'citizen', reason:'all_cleared'};
+    pushLog(state, '全ての危機カードを処理。国民の勝利。');
+    return state;
+  }
+  state.round += 1;
+  state.currentCrisis = state.crisisDeck.shift();
+  state.phase='crisis_reveal';
+  pushLog(state, `第${state.round}ラウンド: 「${state.currentCrisis.name}」が発生`);
+  return state;
+}
+
+/* =====================================================================
+   3. アプリ状態・描画
+   ===================================================================== */
+const App = { gs:null, roleGateIdx:0, roleAcked:[false,false,false,false], subGateActor:null, subRevealed:false, tradeSel:[], judgeSel:[] };
+
+function el(html){ const t=document.createElement('template'); t.innerHTML=html.trim(); return t.content.firstElementChild; }
+const root = document.getElementById('root');
+function escapeHtml(s){ return String(s).replace(/[&<>"']/g, c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c])); }
+
+function renderStart(){
+  root.innerHTML='';
+  root.appendChild(el(`
+    <div class="card">
+      <h2>対局の準備</h2>
+      <p class="muted small">4人固定。国民3人・裏切り者1人が自動でランダムに割り当てられます。同じ端末を回して遊ぶ想定です。</p>
+      <div id="names"></div>
+      <button class="btn primary block" id="go" style="margin-top:14px;">ゲームを開始する</button>
+      <div class="center" style="margin-top:10px;">
+        <span class="help-toggle" id="toggle-rules">ルール・役職を見る</span>
+      </div>
+      <div id="rules-body" class="hidden"></div>
+    </div>
+  `));
+  const namesWrap = document.getElementById('names');
+  for(let i=0;i<4;i++){
+    namesWrap.appendChild(el(`<div style="margin-bottom:6px;"><label>プレイヤー${i+1}</label><input type="text" id="name${i}" value="プレイヤー${i+1}" maxlength="10" /></div>`));
+  }
+  document.getElementById('go').onclick = ()=>{
+    const names=[];
+    for(let i=0;i<4;i++) names.push((document.getElementById('name'+i).value||'').trim() || ('プレイヤー'+(i+1)));
+    App.gs = Game2.newGame(names);
+    App.roleGateIdx=0; App.roleAcked=[false,false,false,false];
+    renderRoleGate();
+  };
+  document.getElementById('toggle-rules').onclick=(e)=>{
+    const b=document.getElementById('rules-body');
+    if(b.classList.contains('hidden')){ b.classList.remove('hidden'); b.innerHTML=rulesHtml(); e.target.textContent='閉じる'; }
+    else{ b.classList.add('hidden'); e.target.textContent='ルール・役職を見る'; }
+  };
+}
+function rulesHtml(){
+  return `
+    <h4>役職</h4>
+    国民3人：危機カード18枚をすべて処理し、危機ゲージが5未満なら勝利。<br>
+    裏切り者1人：危機ゲージを5まで上げれば勝利。正体は最後まで隠されます。
+    <h4>危機カードと必要資源</h4>
+    <table><tr><th>危機</th><th>必要資源</th><th>枚数</th></tr>
+    <tr><td>戦争</td><td>石油2</td><td>5</td></tr>
+    <tr><td>干ばつ</td><td>水2</td><td>4</td></tr>
+    <tr><td>飢饉</td><td>食料2</td><td>4</td></tr>
+    <tr><td>インフラ崩壊</td><td>鉄2</td><td>3</td></tr>
+    <tr><td>国家非常事態</td><td>任意の資源4枚</td><td>2</td></tr>
+    </table>
+    <h4>ラウンドの流れ</h4>
+    危機発生→相談（自由・ブラフ可）→各自伏せて提出→公開→貿易（公開カード2枚→任意の資源1枚。何度でも可）→判定→補充（提出0枚の人だけ、複数いれば手番から時計回りで一番近い人）。
+    <p class="small">貿易で消費した2枚は消滅し、新しい1枚が生まれます（合計は1枚減ります）。判定に使われなかった公開カードは補充山札へ戻ります。</p>
+  `;
+}
+
+function renderRoleGate(){
+  const state = App.gs;
+  const i = App.roleGateIdx;
+  if(i>=4){ renderRoundLoop(); return; }
+  if(!App.roleAcked[i]){
+    root.innerHTML='';
+    root.appendChild(el(`
+      <div class="gate card">
+        <h2>${escapeHtml(state.players[i].name)} さんの役職確認</h2>
+        <p class="muted small">端末を渡してからタップしてください。他の人には見せないでください。</p>
+        <button class="btn primary block" id="reveal">タップして役職を見る</button>
+      </div>
+    `));
+    document.getElementById('reveal').onclick = ()=>{ App.roleAcked[i]=true; renderRoleGate(); };
+    return;
+  }
+  const role = state.players[i].role;
+  const isCitizen = role==='citizen';
+  root.innerHTML='';
+  root.appendChild(el(`
+    <div class="card">
+      <div class="role-card ${isCitizen?'citizen':'traitor'}">
+        <div class="small muted">${escapeHtml(state.players[i].name)} の役職</div>
+        <div class="rlabel">${isCitizen?'国民':'裏切り者'}</div>
+        <div class="small muted" style="margin-top:10px;">
+          ${isCitizen? '危機を18枚すべて処理し、危機ゲージ5未満で国民勝利。' : '危機ゲージを5まで上げれば勝利。正体は隠しましょう。'}
+        </div>
+      </div>
+      <button class="btn primary block" id="next">確認しました。端末を隠して次の人へ</button>
+    </div>
+  `));
+  document.getElementById('next').onclick = ()=>{ App.roleGateIdx++; renderRoleGate(); };
+}
+
+/* ---------- 共通：ステータスバー ---------- */
+function renderStatusBar(){
+  const s = App.gs;
+  const discardCounts = {}; RESOURCE_TYPES.forEach(t=>discardCounts[t]=0);
+  s.discard.forEach(t=>discardCounts[t]++);
+  const wrap = el(`<div></div>`);
+  wrap.appendChild(el(`
+    <div class="status">
+      <div class="box"><div class="lbl">ラウンド</div><div class="val mono">${s.round} / 18</div></div>
+      <div class="box"><div class="lbl">危機カード残</div><div class="val mono">${s.crisisDeck.length}</div></div>
+      <div class="box"><div class="lbl">補充山札</div><div class="val mono">${s.refillDeck.length}</div></div>
+      <div class="box"><div class="lbl">捨て札</div><div class="val mono">${s.discard.length}</div></div>
+    </div>
+  `));
+  wrap.appendChild(el(`
+    <div class="box" style="margin-bottom:12px;">
+      <div class="lbl">危機ゲージ（5で裏切り者勝利）</div>
+      <div class="val mono">${s.gauge} / 5</div>
+      <div class="gauge-track"><div class="gauge-fill" style="width:${s.gauge/5*100}%"></div></div>
+    </div>
+  `));
+  return wrap;
+}
+function resTile(type, opts){
+  opts=opts||{};
+  const cls=['res-tile']; if(opts.small) cls.push('small'); if(opts.selected) cls.push('selected'); if(opts.traded) cls.push('traded');
+  const node = el(`<div class="${cls.join(' ')}" style="background:${RESOURCE_COLOR[type]}">${RESOURCE_LABEL[type]}</div>`);
+  if(opts.onClick) node.addEventListener('click', opts.onClick);
+  return node;
+}
+
+/* ---------- メインラウンドループ ---------- */
+function renderRoundLoop(){
+  const s = App.gs;
+  if(s.phase==='gameover'){ renderGameOver(); return; }
+  if(s.phase==='crisis_reveal') return renderCrisisReveal();
+  if(s.phase==='discussion') return renderDiscussion();
+  if(s.phase==='submission') return renderSubmission();
+  if(s.phase==='reveal') return renderReveal();
+  if(s.phase==='trade') return renderTrade();
+  if(s.phase==='judgment') return renderJudgment();
+}
+function crisisPanel(s){
+  const req = s.currentCrisis;
+  const reqText = req.reqType==='any' ? `任意の資源 合計${req.reqAmount}枚` : `${RESOURCE_LABEL[req.reqType]} ${req.reqAmount}枚`;
+  return el(`
+    <div class="crisis-panel">
+      <div class="small muted">第${s.round}ラウンドの危機</div>
+      <div class="cname">${escapeHtml(req.name)}</div>
+      <div class="creq">必要資源: <b>${reqText}</b></div>
+    </div>
+  `);
+}
+function renderCrisisReveal(){
+  const s=App.gs;
+  root.innerHTML='';
+  const wrap = el(`<div></div>`);
+  wrap.appendChild(renderStatusBar());
+  wrap.appendChild(crisisPanel(s));
+  wrap.appendChild(el(`<div class="card"><p class="small muted">危機が発生しました。ここから自由に話し合ってください（時間制限なし、ブラフも可）。</p><button class="btn primary block" id="next">話し合いを始める</button></div>`));
+  root.appendChild(wrap);
+  document.getElementById('next').onclick=()=>{ App.gs = Game2.advanceToDiscussion(App.gs); renderRoundLoop(); };
+}
+function renderDiscussion(){
+  const s=App.gs;
+  root.innerHTML='';
+  const wrap = el(`<div></div>`);
+  wrap.appendChild(renderStatusBar());
+  wrap.appendChild(crisisPanel(s));
+  wrap.appendChild(el(`<div class="card"><p class="small muted">相談タイム中です。話し合いが終わったら、各プレイヤーが伏せて資源を提出します。</p><button class="btn primary block" id="next">提出へ進む</button></div>`));
+  root.appendChild(wrap);
+  document.getElementById('next').onclick=()=>{ App.gs = Game2.advanceToSubmission(App.gs); App.subGateActor=null; App.subRevealed=false; renderRoundLoop(); };
+}
+function renderSubmission(){
+  const s = App.gs;
+  const pending = s.players.map(p=>p.id).filter(id=>!s.submissions[id]);
+  if(pending.length===0){ App.gs = Game2.revealSubmissions(App.gs); renderRoundLoop(); return; }
+  const actor = pending[0];
+  if(App.subGateActor!==actor || !App.subRevealed){
+    root.innerHTML='';
+    const wrap = el(`<div></div>`);
+    wrap.appendChild(renderStatusBar());
+    wrap.appendChild(crisisPanel(s));
+    wrap.appendChild(el(`
+      <div class="gate card">
+        <h2>${escapeHtml(s.players[actor].name)} さんの提出</h2>
+        <p class="muted small">端末を渡してからタップしてください。他の人には見せないでください。</p>
+        <button class="btn primary block" id="reveal">タップして手札を見る</button>
+      </div>
+    `));
+    root.appendChild(wrap);
+    document.getElementById('reveal').onclick=()=>{ App.subGateActor=actor; App.subRevealed=true; App.subSel=[]; renderSubmission(); };
+    return;
+  }
+  App.subSel = App.subSel || [];
+  root.innerHTML='';
+  const wrap = el(`<div></div>`);
+  wrap.appendChild(renderStatusBar());
+  wrap.appendChild(crisisPanel(s));
+  const you = el(`<div class="card"></div>`);
+  you.appendChild(el(`<div class="small muted" style="margin-bottom:6px;">${escapeHtml(s.players[actor].name)} の手札（タップして提出するカードを選択。0枚でもOK）</div>`));
+  const handWrap = el(`<div class="res-wrap"></div>`);
+  s.players[actor].hand.forEach(c=>{
+    const selected = App.subSel.includes(c.id);
+    const t = resTile(c.type, {selected, onClick: ()=>{
+      if(selected) App.subSel = App.subSel.filter(x=>x!==c.id);
+      else App.subSel.push(c.id);
+      renderSubmission();
+    }});
+    handWrap.appendChild(t);
+  });
+  you.appendChild(handWrap);
+  const submitBtn = el(`<button class="btn primary block">この内容で提出する（${App.subSel.length}枚）</button>`);
+  submitBtn.onclick = ()=>{
+    App.gs = Game2.submitCards(App.gs, actor, App.subSel);
+    App.subGateActor=null; App.subRevealed=false; App.subSel=[];
+    renderSubmission();
+  };
+  you.appendChild(submitBtn);
+  wrap.appendChild(you);
+  root.appendChild(wrap);
+}
+function renderReveal(){
+  const s=App.gs;
+  root.innerHTML='';
+  const wrap = el(`<div></div>`);
+  wrap.appendChild(renderStatusBar());
+  wrap.appendChild(crisisPanel(s));
+  const card = el(`<div class="card"></div>`);
+  card.appendChild(el(`<h3 class="small" style="color:var(--amber);">提出カード公開</h3>`));
+  s.players.forEach(p=>{
+    const mine = s.field.filter(c=>c.ownerId===p.id);
+    const g = el(`<div class="owner-group"></div>`);
+    g.appendChild(el(`<div class="oname">${escapeHtml(p.name)}（${mine.length}枚）</div>`));
+    const rw = el(`<div class="res-wrap"></div>`);
+    mine.forEach(c=> rw.appendChild(resTile(c.type,{small:true})));
+    g.appendChild(rw);
+    card.appendChild(g);
+  });
+  const btn = el(`<button class="btn primary block">貿易へ進む</button>`);
+  btn.onclick = ()=>{ App.gs = Game2.advanceToTrade(App.gs); App.tradeSel=[]; renderRoundLoop(); };
+  card.appendChild(btn);
+  wrap.appendChild(card);
+  root.appendChild(wrap);
+}
+function renderTrade(){
+  const s=App.gs;
+  App.tradeSel = App.tradeSel||[];
+  root.innerHTML='';
+  const wrap = el(`<div></div>`);
+  wrap.appendChild(renderStatusBar());
+  wrap.appendChild(crisisPanel(s));
+  const card = el(`<div class="card"></div>`);
+  const canNow = Game2.canSucceed(s);
+  card.appendChild(el(`<div class="small" style="margin-bottom:8px;">現在の場: <b style="color:${canNow?'var(--ok)':'var(--alert-bright)'}">${canNow?'解決可能':'まだ足りません'}</b></div>`));
+  card.appendChild(el(`<div class="small muted" style="margin-bottom:6px;">公開カードから2枚を選んで交換できます（何度でも可）。交換すると2枚は消えて、選んだ種類の資源が1枚生まれます。</div>`));
+  const rw = el(`<div class="res-wrap"></div>`);
+  s.field.forEach(c=>{
+    const selected = App.tradeSel.includes(c.id);
+    rw.appendChild(resTile(c.type, {selected, traded:c.traded, onClick:()=>{
+      if(selected){ App.tradeSel = App.tradeSel.filter(x=>x!==c.id); renderTrade(); return; }
+      if(App.tradeSel.length>=2) return;
+      App.tradeSel.push(c.id);
+      renderTrade();
+    }}));
+  });
+  card.appendChild(rw);
+  if(App.tradeSel.length===2){
+    const pick = el(`<div class="row" style="margin-top:10px;"></div>`);
+    pick.appendChild(el(`<div class="small muted" style="width:100%;">交換後の資源を選択:</div>`));
+    RESOURCE_TYPES.forEach(t=>{
+      const b = el(`<button class="btn">${RESOURCE_LABEL[t]}</button>`);
+      b.onclick = ()=>{
+        App.gs = Game2.doTrade(App.gs, App.tradeSel[0], App.tradeSel[1], t);
+        App.tradeSel=[];
+        renderTrade();
+      };
+      pick.appendChild(b);
+    });
+    card.appendChild(pick);
+  }
+  const doneBtn = el(`<button class="btn primary block" style="margin-top:14px;">貿易を終えて判定へ</button>`);
+  doneBtn.onclick = ()=>{ App.gs = Game2.advanceToJudgment(App.gs); App.judgeSel=[]; renderRoundLoop(); };
+  card.appendChild(doneBtn);
+  wrap.appendChild(card);
+  root.appendChild(wrap);
+}
+function renderJudgment(){
+  const s=App.gs;
+  const req = s.currentCrisis;
+  const canNow = Game2.canSucceed(s);
+  App.judgeSel = App.judgeSel||[];
+  root.innerHTML='';
+  const wrap = el(`<div></div>`);
+  wrap.appendChild(renderStatusBar());
+  wrap.appendChild(crisisPanel(s));
+  const card = el(`<div class="card"></div>`);
+  if(!canNow){
+    card.appendChild(el(`<div class="result-banner traitor" style="font-size:1.4rem;">解決失敗</div>`));
+    card.appendChild(el(`<div class="small muted center">必要な資源が揃いませんでした。危機ゲージが+1されます。</div>`));
+    const btn = el(`<button class="btn primary block" style="margin-top:12px;">確定して次のラウンドへ</button>`);
+    btn.onclick=()=>{ App.gs = Game2.resolveFailure(App.gs); renderRoundLoop(); };
+    card.appendChild(btn);
+  } else {
+    const need = req.reqAmount;
+    card.appendChild(el(`<div class="small muted" style="margin-bottom:8px;">解決に使うカードを <span class="pick-counter">${req.reqType==='any'?'合計'+need+'枚':RESOURCE_LABEL[req.reqType]+' '+need+'枚'}</span> ちょうど選んでください。（<span class="pick-counter">${App.judgeSel.length}/${need}</span> 選択中）</div>`));
+    const rw = el(`<div class="res-wrap"></div>`);
+    s.field.forEach(c=>{
+      const eligible = (req.reqType==='any') || (c.type===req.reqType);
+      const selected = App.judgeSel.includes(c.id);
+      const t = resTile(c.type, {selected, traded:c.traded, onClick: eligible? ()=>{
+        if(selected){ App.judgeSel = App.judgeSel.filter(x=>x!==c.id); renderJudgment(); return; }
+        if(App.judgeSel.length>=need) return;
+        App.judgeSel.push(c.id);
+        renderJudgment();
+      } : null});
+      if(!eligible) t.style.opacity = '.35';
+      rw.appendChild(t);
+    });
+    card.appendChild(rw);
+    const btn = el(`<button class="btn ok block" style="margin-top:12px;">この内容で解決する</button>`);
+    btn.disabled = App.judgeSel.length!==need;
+    btn.onclick = ()=>{ App.gs = Game2.resolveSuccess(App.gs, App.judgeSel); App.judgeSel=[]; renderRoundLoop(); };
+    card.appendChild(btn);
+  }
+  wrap.appendChild(card);
+  const log = el(`<div class="log-box"></div>`);
+  s.log.slice(-8).forEach(m=> log.appendChild(el(`<div>・${escapeHtml(m)}</div>`)));
+  wrap.appendChild(log);
+  root.appendChild(wrap);
+}
+function renderGameOver(){
+  const s = App.gs;
+  root.innerHTML='';
+  const win = s.result.winner;
+  const wrap = el(`<div class="card center"></div>`);
+  wrap.appendChild(el(`<div class="result-banner ${win}">${win==='citizen'?'国民の勝利':'裏切り者の勝利'}</div>`));
+  wrap.appendChild(el(`<div class="small muted">${s.result.reason==='gauge_max' ? '危機ゲージが5に到達しました。' : '18枚すべての危機を処理し切りました。'}</div>`));
+  const roleList = el(`<div class="section-label">役職公開</div>`);
+  wrap.appendChild(roleList);
+  const rw = el(`<div style="display:flex;flex-direction:column;gap:6px;"></div>`);
+  s.players.forEach(p=>{
+    rw.appendChild(el(`<div class="row" style="justify-content:space-between;background:var(--panel-alt);border:1px solid var(--line);border-radius:8px;padding:8px 12px;">
+      <span>${escapeHtml(p.name)}</span>
+      <span style="color:${p.role==='citizen'?'var(--citizen)':'var(--traitor)'};font-weight:700;">${p.role==='citizen'?'国民':'裏切り者'}</span>
+    </div>`));
+  });
+  wrap.appendChild(rw);
+  const again = el(`<button class="btn primary block" style="margin-top:16px;">同じメンバーでもう一度</button>`);
+  again.onclick = ()=>{
+    const names = s.players.map(p=>p.name);
+    App.gs = Game2.newGame(names);
+    App.roleGateIdx=0; App.roleAcked=[false,false,false,false];
+    renderRoleGate();
+  };
+  const toTitle = el(`<button class="btn block">タイトルへ戻る</button>`);
+  toTitle.onclick = renderStart;
+  wrap.appendChild(again); wrap.appendChild(toTitle);
+  root.appendChild(wrap);
+}
+
+renderStart();
+</script>
+</body>
+</html>
