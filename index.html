@@ -299,7 +299,7 @@ try{
     fbReady = true;
   }
 }catch(e){ console.error('Firebase init failed', e); }
-const CRISIS_COLLECTION = 'crisis_rooms'; // 麻雀の rooms コレクションとは分離
+const CRISIS_COLLECTION = 'rooms'; // 麻雀と同じ rooms コレクションを共用（ルームコードが被る確率はごく低いため許容）
 
 /* =====================================================================
    4. アプリ状態・共通描画パーツ
@@ -365,7 +365,7 @@ function gaugeMaxPicker(containerId, hintId){
   return el(`<div style="margin:10px 0;"><label>危機ゲージの上限（この数値に到達で裏切り者勝利）</label><div class="row" id="${containerId}"></div><div class="small muted" id="${hintId}" style="margin-top:4px;"></div></div>`);
 }
 function wireGaugeMaxPicker(containerId, hintId, onChange){
-  const options=[5,8,10,12,15];
+  const options=[3,5,8,10,12,15];
   let current = 10;
   const box = document.getElementById(containerId);
   function renderOpts(){
@@ -379,7 +379,8 @@ function wireGaugeMaxPicker(containerId, hintId, onChange){
   function updateHint(){
     const hint = document.getElementById(hintId);
     if(!hint) return;
-    if(current<=5) hint.textContent='仕様書どおりの初期値。国民側にはかなり厳しい難易度です。';
+    if(current<=4) hint.textContent='超高難易度。裏切り者がかなり有利です。';
+    else if(current===5) hint.textContent='仕様書どおりの初期値。国民側にはかなり厳しい難易度です。';
     else if(current<10) hint.textContent='まだ国民側が不利な設定です。';
     else if(current<=12) hint.textContent='シミュレーション上、勝負らしくなる目安の設定です。';
     else hint.textContent='国民側がかなり有利になる設定です。';
