@@ -79,6 +79,14 @@ input[type=text]{background:var(--panel-alt);border:1px solid var(--line);color:
 .role-card.citizen .rlabel{color:var(--citizen);}
 .role-card.traitor .rlabel{color:var(--traitor);}
 
+.role-badge{display:flex;justify-content:space-between;align-items:center;border-radius:8px;padding:8px 14px;margin-bottom:12px;border:1px solid;}
+.role-badge.citizen{background:rgba(77,143,209,.12);border-color:var(--citizen);}
+.role-badge.traitor{background:rgba(226,72,61,.14);border-color:var(--traitor);}
+.role-badge .rb-label{font-size:.72rem;color:var(--muted);letter-spacing:.05em;}
+.role-badge .rb-value{font-family:"Zen Kaku Gothic New";font-weight:900;font-size:1.1rem;}
+.role-badge.citizen .rb-value{color:var(--citizen);}
+.role-badge.traitor .rb-value{color:var(--traitor);}
+
 .gate{text-align:center;padding:60px 20px;}
 .gate h2{color:var(--amber);}
 .log-box{background:#0a0c10;border:1px solid var(--line);border-radius:8px;padding:8px 12px;font-size:.76rem;color:var(--muted);max-height:130px;overflow-y:auto;margin-top:10px;}
@@ -521,6 +529,16 @@ function handPanel(state, seat, opts){
   wrap.appendChild(rw);
   return wrap;
 }
+function roleBadge(state, seat){
+  const role = state.players[seat].role;
+  const isCitizen = role==='citizen';
+  return el(`
+    <div class="role-badge ${isCitizen?'citizen':'traitor'}">
+      <span class="rb-label">あなたの役職</span>
+      <span class="rb-value">${isCitizen?'国民':'裏切り者'}</span>
+    </div>
+  `);
+}
 
 function renderCrisisRevealHotseat(){
   const s=App.gs;
@@ -925,6 +943,7 @@ function renderCrisisRevealOnline(state, ref, mySeat){
   const wrap = el(`<div></div>`);
   wrap.appendChild(renderStatusBar(state));
   wrap.appendChild(crisisPanel(state));
+  wrap.appendChild(roleBadge(state, mySeat));
   wrap.appendChild(handPanel(state, mySeat));
   wrap.appendChild(el(`<div class="card"><p class="small muted">危機が発生しました。ボイスチャットなどで自由に話し合ってください（ブラフも可）。自分の手札は上に表示されています。</p><button class="btn primary block" id="next">話し合いを始める</button></div>`));
   root.appendChild(wrap);
@@ -935,6 +954,7 @@ function renderDiscussionOnline(state, ref, mySeat){
   const wrap = el(`<div></div>`);
   wrap.appendChild(renderStatusBar(state));
   wrap.appendChild(crisisPanel(state));
+  wrap.appendChild(roleBadge(state, mySeat));
   wrap.appendChild(handPanel(state, mySeat));
   wrap.appendChild(el(`<div class="card"><p class="small muted">相談タイム中です。準備ができたら誰かが次に進めてください。</p><button class="btn primary block" id="next">提出へ進む</button></div>`));
   root.appendChild(wrap);
@@ -945,6 +965,7 @@ function renderSubmissionOnline(state, ref, mySeat){
   const wrap = el(`<div></div>`);
   wrap.appendChild(renderStatusBar(state));
   wrap.appendChild(crisisPanel(state));
+  wrap.appendChild(roleBadge(state, mySeat));
   const already = !!state.submissions[mySeat];
   const submittedSeats = state.players.map(p=>p.id).filter(id=>state.submissions[id]);
   wrap.appendChild(el(`<div class="card small muted">提出済み: ${submittedSeats.length} / 4人</div>`));
@@ -973,6 +994,7 @@ function renderRevealOnline(state, ref, mySeat){
   const wrap = el(`<div></div>`);
   wrap.appendChild(renderStatusBar(state));
   wrap.appendChild(crisisPanel(state));
+  wrap.appendChild(roleBadge(state, mySeat));
   const card = el(`<div class="card"></div>`);
   card.appendChild(el(`<h3 class="small" style="color:var(--amber);">提出カード公開</h3>`));
   state.players.forEach(p=>{
@@ -996,6 +1018,7 @@ function renderTradeOnline(state, ref, mySeat){
   const wrap = el(`<div></div>`);
   wrap.appendChild(renderStatusBar(state));
   wrap.appendChild(crisisPanel(state));
+  wrap.appendChild(roleBadge(state, mySeat));
   const card = el(`<div class="card"></div>`);
   const canNow = Game2.canSucceed(state);
   card.appendChild(el(`<div class="small" style="margin-bottom:8px;">現在の場: <b style="color:${canNow?'var(--ok)':'var(--alert-bright)'}">${canNow?'解決可能':'まだ足りません'}</b></div>`));
@@ -1038,6 +1061,7 @@ function renderJudgmentOnline(state, ref, mySeat){
   const wrap = el(`<div></div>`);
   wrap.appendChild(renderStatusBar(state));
   wrap.appendChild(crisisPanel(state));
+  wrap.appendChild(roleBadge(state, mySeat));
   const card = el(`<div class="card"></div>`);
   if(!canNow){
     card.appendChild(el(`<div class="result-banner traitor" style="font-size:1.4rem;">解決失敗</div>`));
