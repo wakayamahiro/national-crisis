@@ -201,9 +201,9 @@ Game2.revealSubmissions = function(stateIn){
   state.players.forEach(p=>{
     const cards = state.submissions[p.id]||[];
     if(cards.length===0) zero.push(p.id);
-    cards.forEach(c=> field.push({id:c.id, type:c.type, ownerId:p.id, traded:false}));
+    cards.forEach(c=> field.push({id:c.id, type:c.type, ownerId:null, traded:false}));
   });
-  state.field=field; state.zeroSubmitters=zero; state.submissions={}; state.phase='reveal';
+  state.field=field; state.zeroSubmitters=zero; state.submissions={}; state.phase='trade';
   pushLog(state, `提出完了（${field.length}枚が公開）`);
   return state;
 };
@@ -473,7 +473,6 @@ function renderRoundLoopHotseat(){
   if(s.phase==='crisis_reveal') return renderCrisisRevealHotseat();
   if(s.phase==='discussion') return renderDiscussionHotseat();
   if(s.phase==='submission') return renderSubmissionHotseat();
-  if(s.phase==='reveal') return renderRevealHotseat();
   if(s.phase==='trade') return renderTradeHotseat();
   if(s.phase==='judgment') return renderJudgmentHotseat();
 }
@@ -601,29 +600,6 @@ function renderSubmissionHotseat(){
   wrap.appendChild(you);
   root.appendChild(wrap);
 }
-function renderRevealHotseat(){
-  const s=App.gs;
-  root.innerHTML='';
-  const wrap = el(`<div></div>`);
-  wrap.appendChild(renderStatusBar(s));
-  wrap.appendChild(crisisPanel(s));
-  const card = el(`<div class="card"></div>`);
-  card.appendChild(el(`<h3 class="small" style="color:var(--amber);">提出カード公開</h3>`));
-  s.players.forEach(p=>{
-    const mine = s.field.filter(c=>c.ownerId===p.id);
-    const g = el(`<div class="owner-group"></div>`);
-    g.appendChild(el(`<div class="oname">${escapeHtml(p.name)}（${mine.length}枚）</div>`));
-    const rw = el(`<div class="res-wrap"></div>`);
-    mine.forEach(c=> rw.appendChild(resTile(c.type,{small:true})));
-    g.appendChild(rw);
-    card.appendChild(g);
-  });
-  const btn = el(`<button class="btn primary block">貿易へ進む</button>`);
-  btn.onclick = ()=>{ App.gs = Game2.advanceToTrade(App.gs); App.tradeSel=[]; renderRoundLoopHotseat(); };
-  card.appendChild(btn);
-  wrap.appendChild(card);
-  root.appendChild(wrap);
-}
 function renderTradeHotseat(){
   const s=App.gs;
   App.tradeSel = App.tradeSel||[];
@@ -633,6 +609,7 @@ function renderTradeHotseat(){
   wrap.appendChild(crisisPanel(s));
   const card = el(`<div class="card"></div>`);
   const canNow = Game2.canSucceed(s);
+  card.appendChild(el(`<h3 class="small" style="color:var(--amber);margin-bottom:6px;">提出カード公開（誰が出したかは分かりません）</h3>`));
   card.appendChild(el(`<div class="small" style="margin-bottom:8px;">現在の場: <b style="color:${canNow?'var(--ok)':'var(--alert-bright)'}">${canNow?'解決可能':'まだ足りません'}</b></div>`));
   card.appendChild(el(`<div class="small muted" style="margin-bottom:6px;">公開カードから2枚を選んで交換できます（何度でも可）。交換すると2枚は消えて、選んだ種類の資源が1枚生まれます。</div>`));
   const rw = el(`<div class="res-wrap"></div>`);
@@ -914,7 +891,6 @@ function renderOnlineGame(code, ref){
   if(state.phase==='crisis_reveal') return renderCrisisRevealOnline(state, ref, mySeat);
   if(state.phase==='discussion') return renderDiscussionOnline(state, ref, mySeat);
   if(state.phase==='submission') return renderSubmissionOnline(state, ref, mySeat);
-  if(state.phase==='reveal') return renderRevealOnline(state, ref, mySeat);
   if(state.phase==='trade') return renderTradeOnline(state, ref, mySeat);
   if(state.phase==='judgment') return renderJudgmentOnline(state, ref, mySeat);
 }
@@ -989,29 +965,6 @@ function renderSubmissionOnline(state, ref, mySeat){
   }
   root.appendChild(wrap);
 }
-function renderRevealOnline(state, ref, mySeat){
-  root.innerHTML='';
-  const wrap = el(`<div></div>`);
-  wrap.appendChild(renderStatusBar(state));
-  wrap.appendChild(crisisPanel(state));
-  wrap.appendChild(roleBadge(state, mySeat));
-  const card = el(`<div class="card"></div>`);
-  card.appendChild(el(`<h3 class="small" style="color:var(--amber);">提出カード公開</h3>`));
-  state.players.forEach(p=>{
-    const mine = state.field.filter(c=>c.ownerId===p.id);
-    const g = el(`<div class="owner-group"></div>`);
-    g.appendChild(el(`<div class="oname">${escapeHtml(p.name)}${p.id===mySeat?'（あなた）':''}（${mine.length}枚）</div>`));
-    const rw = el(`<div class="res-wrap"></div>`);
-    mine.forEach(c=> rw.appendChild(resTile(c.type,{small:true})));
-    g.appendChild(rw);
-    card.appendChild(g);
-  });
-  const btn = el(`<button class="btn primary block">貿易へ進む</button>`);
-  btn.onclick = ()=> onlineAction(ref, s=>Game2.advanceToTrade(s));
-  card.appendChild(btn);
-  wrap.appendChild(card);
-  root.appendChild(wrap);
-}
 function renderTradeOnline(state, ref, mySeat){
   App.tradeSel = App.tradeSel||[];
   root.innerHTML='';
@@ -1021,6 +974,7 @@ function renderTradeOnline(state, ref, mySeat){
   wrap.appendChild(roleBadge(state, mySeat));
   const card = el(`<div class="card"></div>`);
   const canNow = Game2.canSucceed(state);
+  card.appendChild(el(`<h3 class="small" style="color:var(--amber);margin-bottom:6px;">提出カード公開（誰が出したかは分かりません）</h3>`));
   card.appendChild(el(`<div class="small" style="margin-bottom:8px;">現在の場: <b style="color:${canNow?'var(--ok)':'var(--alert-bright)'}">${canNow?'解決可能':'まだ足りません'}</b></div>`));
   card.appendChild(el(`<div class="small muted" style="margin-bottom:6px;">公開カードから2枚を選んで交換できます（何度でも可、全員が操作できます）。</div>`));
   const rw = el(`<div class="res-wrap"></div>`);
